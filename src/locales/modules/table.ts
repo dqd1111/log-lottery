@@ -17,6 +17,7 @@ export const tableEn = {
     operation: 'Operation',
     setLuckyNumber: 'Set Lucky Number',
     luckyPeopleNumber: 'Lucky People Number',
+    drawCount: 'Draw Count',
     detail: 'Detail',
     noneData: 'No Data',
     // prize configuration
@@ -69,6 +70,7 @@ export const tableZhCn = {
     operation: '操作',
     setLuckyNumber: '设置中奖人数',
     luckyPeopleNumber: '中奖人数',
+    drawCount: '抽取数量',
     detail: '详细信息',
     noneData: '暂无数据',
     // prize configuration
