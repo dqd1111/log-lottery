@@ -6,7 +6,7 @@ import { storeToRefs } from 'pinia'
 import { PerspectiveCamera, Scene } from 'three'
 import { CSS3DObject, CSS3DRenderer } from 'three-css3d'
 import { TrackballControls } from 'three/examples/jsm/controls/TrackballControls.js'
-import { nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useToast } from 'vue-toast-notification'
 import dongSound from '@/assets/audio/end.mp3'
 import enterAudio from '@/assets/audio/enter.wav'
@@ -25,6 +25,7 @@ export function useViewModel() {
     const toast = useToast()
     // store里面存储的值
     const { personConfig, globalConfig, prizeConfig } = useStore()
+    prizeConfig.ensureSinglePrize()
     const {
         getAllPersonList: allPersonList,
         getNotPersonList: notPersonList,
@@ -67,7 +68,7 @@ export function useViewModel() {
     const tableData = ref<any[]>([])
     const luckyTargets = ref<any[]>([])
     const luckyCardList = ref<number[]>([])
-    const luckyCount = ref(10)
+    const luckyCount = ref(1)
     const personPool = ref<IPersonConfig[]>([])
     const intervalTimer = ref<any>(null)
     const isInitialDone = ref<boolean>(false)
@@ -76,6 +77,38 @@ export function useViewModel() {
 
     // 抽奖音乐相关
     const lotteryMusic = ref<HTMLAudioElement | null>(null)
+
+    const maxDrawCount = computed(() => {
+        const prize = currentPrize.value
+        if (!prize || prize.isUsed) {
+            return 0
+        }
+
+        const remainingPrizeCount = Math.max(Number(prize.count) - Number(prize.isUsedCount), 0)
+        const availablePersonCount = prize.isAll ? notThisPrizePersonList.value.length : notPersonList.value.length
+        return Math.min(SINGLE_TIME_MAX_PERSON_COUNT, remainingPrizeCount, availablePersonCount)
+    })
+
+    function setDrawCount(count: number) {
+        const max = maxDrawCount.value
+        if (max <= 0) {
+            luckyCount.value = 0
+            return
+        }
+
+        const normalizedCount = Number.isFinite(count) ? Math.floor(count) : 1
+        luckyCount.value = Math.min(Math.max(normalizedCount, 1), max)
+    }
+
+    watch(maxDrawCount, (max) => {
+        if (max <= 0) {
+            luckyCount.value = 0
+            return
+        }
+        if (luckyCount.value < 1 || luckyCount.value > max) {
+            luckyCount.value = Math.min(Math.max(luckyCount.value, 1), max)
+        }
+    })
 
     function initThreeJs() {
         const felidView = 40
@@ -487,7 +520,7 @@ export function useViewModel() {
             return
         }
         // 验证是否已抽完全部奖项
-        if (currentPrize.value.isUsed || !currentPrize.value) {
+        if (!currentPrize.value || currentPrize.value.isUsed) {
             toast.open({
                 message: i18n.global.t('error.personIsAllDone'),
                 type: 'warning',
@@ -499,8 +532,9 @@ export function useViewModel() {
         }
         // personPool.value = currentPrize.value.isAll ? notThisPrizePersonList.value : notPersonList.value
         personPool.value = currentPrize.value.isAll ? [...notThisPrizePersonList.value] : [...notPersonList.value]
-        // 验证抽奖人数是否还够
-        if (personPool.value.length < currentPrize.value.count - currentPrize.value.isUsedCount) {
+        const remainingPrizeCount = Math.max(currentPrize.value.count - currentPrize.value.isUsedCount, 0)
+        const maxSelectableCount = Math.min(SINGLE_TIME_MAX_PERSON_COUNT, remainingPrizeCount, personPool.value.length)
+        if (maxSelectableCount <= 0) {
             toast.open({
                 message: i18n.global.t('error.personNotEnough'),
                 type: 'warning',
@@ -510,23 +544,9 @@ export function useViewModel() {
 
             return
         }
-        // 默认置为单次抽奖最大个数
-        luckyCount.value = SINGLE_TIME_MAX_PERSON_COUNT
-        // 还剩多少人未抽
-        let leftover = currentPrize.value.count - currentPrize.value.isUsedCount
-        const customCount = currentPrize.value.separateCount
-        if (customCount && customCount.enable && customCount.countList.length > 0) {
-            for (let i = 0; i < customCount.countList.length; i++) {
-                if (customCount.countList[i].isUsedCount < customCount.countList[i].count) {
-                    // 根据自定义人数来抽取
-                    leftover = customCount.countList[i].count - customCount.countList[i].isUsedCount
-                    break
-                }
-            }
-        }
-        luckyCount.value = leftover < luckyCount.value ? leftover : luckyCount.value
-        // 重构抽奖函数
-        luckyTargets.value = getRandomElements(personPool.value, luckyCount.value)
+        setDrawCount(Math.min(luckyCount.value || 1, maxSelectableCount))
+        const drawCount = luckyCount.value
+        luckyTargets.value = getRandomElements(personPool.value, drawCount)
         luckyTargets.value.forEach((item) => {
             const index = personPool.value.findIndex(person => person.id === item.id)
             if (index > -1) {
@@ -535,8 +555,7 @@ export function useViewModel() {
         })
 
         toast.open({
-            // message: `现在抽取${currentPrize.value.name} ${leftover}人`,
-            message: i18n.global.t('error.startDraw', { count: currentPrize.value.name, leftover }),
+            message: i18n.global.t('error.startDraw', { count: currentPrize.value.name, drawCount }),
             type: 'default',
             position: 'top-right',
             duration: 8000,
@@ -679,23 +698,20 @@ export function useViewModel() {
         if (!canOperate.value) {
             return
         }
-        const customCount = currentPrize.value.separateCount
-        if (customCount && customCount.enable && customCount.countList.length > 0) {
-            for (let i = 0; i < customCount.countList.length; i++) {
-                if (customCount.countList[i].isUsedCount < customCount.countList[i].count) {
-                    customCount.countList[i].isUsedCount += luckyCount.value
-                    break
-                }
-            }
-        }
-        currentPrize.value.isUsedCount += luckyCount.value
-        luckyCount.value = 0
+        const drawnCount = luckyCount.value
+        currentPrize.value.isUsedCount += drawnCount
         if (currentPrize.value.isUsedCount >= currentPrize.value.count) {
             currentPrize.value.isUsed = true
             currentPrize.value.isUsedCount = currentPrize.value.count
         }
         personConfig.addAlreadyPersonList(luckyTargets.value, currentPrize.value)
         prizeConfig.updatePrizeConfig(currentPrize.value)
+        if (maxDrawCount.value > 0) {
+            setDrawCount(Math.min(drawnCount, maxDrawCount.value))
+        }
+        else {
+            luckyCount.value = 0
+        }
         await enterLottery()
     }
     /**
@@ -898,6 +914,9 @@ export function useViewModel() {
     return {
         setDefaultPersonList,
         startLottery,
+        drawCount: luckyCount,
+        maxDrawCount,
+        setDrawCount,
         continueLottery,
         quitLottery,
         containerRef,
