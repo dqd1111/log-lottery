@@ -6,16 +6,24 @@ import { LotteryStatus } from '@/views/Home/type'
 interface Props {
     currentStatus: LotteryStatus
     tableData: any[]
+    drawCount: number
+    maxDrawCount: number
     enterLottery: () => void
     startLottery: () => void
     stopLottery: () => void
     continueLottery: () => void
     quitLottery: () => void
+    setDrawCount: (count: number) => void
 }
 const props = defineProps<Props>()
 
-const { currentStatus, tableData, enterLottery, startLottery, stopLottery, continueLottery, quitLottery } = toRefs(props)
+const { currentStatus, tableData, drawCount, maxDrawCount, enterLottery, startLottery, stopLottery, continueLottery, quitLottery, setDrawCount } = toRefs(props)
 const { t } = useI18n()
+
+function handleDrawCountChange(event: Event) {
+    const target = event.target as HTMLSelectElement
+    setDrawCount.value(Number(target.value))
+}
 </script>
 
 <template>
@@ -25,17 +33,27 @@ const { t } = useI18n()
     </button>
 
     <div v-if="currentStatus === LotteryStatus.ready" class="start">
-      <button class="btn-stars" @click="startLottery">
-        <strong>{{ t('button.start') }}</strong>
-        <div id="container-stars">
-          <div id="stars" />
-        </div>
+      <div class="ready-controls">
+        <button class="btn-stars" @click="startLottery">
+          <strong>{{ t('button.start') }}</strong>
+          <div id="container-stars">
+            <div id="stars" />
+          </div>
 
-        <div id="glow">
-          <div class="circle" />
-          <div class="circle" />
-        </div>
-      </button>
+          <div id="glow">
+            <div class="circle" />
+            <div class="circle" />
+          </div>
+        </button>
+        <label class="draw-count-control" for="draw-count">
+          <span>{{ t('table.drawCount') }}</span>
+          <select id="draw-count" :value="drawCount" :disabled="maxDrawCount < 1" @change="handleDrawCountChange">
+            <option v-for="count in maxDrawCount" :key="count" :value="count">
+              {{ count }}
+            </option>
+          </select>
+        </label>
+      </div>
     </div>
 
     <button v-if="currentStatus === LotteryStatus.running" class="btn-neon btn glass btn-lg" @click="stopLottery">
