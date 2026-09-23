@@ -2,6 +2,19 @@ import type { IPrizeConfig } from '@/types/storeType'
 import { defineStore } from 'pinia'
 import { defaultCurrentPrize, defaultPrizeList } from './data'
 
+function cloneSinglePrize(prize: IPrizeConfig): IPrizeConfig {
+    return {
+        ...prize,
+        sort: 1,
+        isShow: true,
+        picture: { ...prize.picture },
+        separateCount: {
+            enable: false,
+            countList: [],
+        },
+    }
+}
+
 export const usePrizeConfig = defineStore('prize', {
     state() {
         return {
@@ -58,17 +71,31 @@ export const usePrizeConfig = defineStore('prize', {
 
     },
     actions: {
-    // 设置奖项
+        // The draw page is intentionally limited to one prize.
+        ensureSinglePrize() {
+            const currentPrizeId = this.prizeConfig.currentPrize?.id
+            const sourcePrize = this.prizeConfig.prizeList.find(item => item.id === currentPrizeId)
+              || this.prizeConfig.prizeList[0]
+              || defaultCurrentPrize
+            const singlePrize = cloneSinglePrize(sourcePrize)
+            this.prizeConfig.prizeList = [singlePrize]
+            this.prizeConfig.currentPrize = singlePrize
+        },
+        // 设置奖项
         setPrizeConfig(prizeList: IPrizeConfig[]) {
-            this.prizeConfig.prizeList = prizeList
+            const singlePrize = cloneSinglePrize(prizeList[0] || defaultCurrentPrize)
+            this.prizeConfig.prizeList = [singlePrize]
+            this.prizeConfig.currentPrize = singlePrize
         },
         // 添加奖项
         addPrizeConfig(prizeConfigItem: IPrizeConfig) {
-            this.prizeConfig.prizeList.push(prizeConfigItem)
+            this.setPrizeConfig([prizeConfigItem])
         },
         // 删除奖项
         deletePrizeConfig(prizeConfigItemId: number | string) {
-            this.prizeConfig.prizeList = this.prizeConfig.prizeList.filter(item => item.id !== prizeConfigItemId)
+            if (this.prizeConfig.prizeList[0]?.id === prizeConfigItemId) {
+                this.resetDefault()
+            }
         },
         // 更新奖项数据
         updatePrizeConfig(prizeConfigItem: IPrizeConfig) {
@@ -88,7 +115,7 @@ export const usePrizeConfig = defineStore('prize', {
         },
         // 删除全部奖项
         deleteAllPrizeConfig() {
-            this.prizeConfig.prizeList = [] as IPrizeConfig[]
+            this.resetDefault()
         },
         // 设置当前奖项
         setCurrentPrize(prizeConfigItem: IPrizeConfig) {
