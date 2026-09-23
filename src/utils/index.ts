@@ -38,13 +38,22 @@ export function addOtherInfo(personList: any[]) {
     return personList
 }
 
-export function selectCard(cardIndexArr: number[], tableLength: number, personId: number): number {
-    const cardIndex = Math.floor(Math.random() * (tableLength - 1))
-    if (cardIndexArr.includes(cardIndex)) {
-        return selectCard(cardIndexArr, tableLength, personId)
+export function selectCard(cardIndexArr: number[], tableLength: number, _personId: number): number {
+    if (tableLength <= 0) {
+        return -1
     }
 
-    return cardIndex
+    const usedCards = new Set(cardIndexArr)
+    const availableCards: number[] = []
+    for (let index = 0; index < tableLength; index++) {
+        if (!usedCards.has(index)) {
+            availableCards.push(index)
+        }
+    }
+
+    // Reuse a card only after every card is already occupied; this avoids recursive overflow.
+    const candidates = availableCards.length > 0 ? availableCards : Array.from({ length: tableLength }, (_, index) => index)
+    return candidates[Math.floor(Math.random() * candidates.length)]
 }
 
 export function themeChange(theme: string) {
