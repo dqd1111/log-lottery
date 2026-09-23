@@ -1,5 +1,3 @@
-import { SINGLE_TIME_MAX_PERSON_COUNT } from '@/constant/config'
-
 export const tooltipEn = {
     settingConfiguration: 'Setting/Configuration',
     nextSong: 'Right Click to Next Song',
@@ -18,7 +16,7 @@ export const tooltipEn = {
     timedStop: 'After the lottery begins, it will stop at a scheduled time by default, set to 0, with the unit in seconds. A value of 0 disables the scheduled stopping function',
     uploadImage: 'Upload Image',
     pleaseGoto: 'Please go to',
-    onceNumberMax: `The maximum quantity for a single extraction is ${SINGLE_TIME_MAX_PERSON_COUNT}. If it exceeds ${SINGLE_TIME_MAX_PERSON_COUNT}, it will be automatically extracted in batches for you`,
+    onceNumberMax: 'Configure draw groups based on the total number of winners',
 }
 
 export const tooltipZhCn = {
@@ -39,7 +37,7 @@ export const tooltipZhCn = {
     timedStop: '开始抽奖过后定时停止，默认为0，单位为秒，0为关闭定时停止功能',
     uploadImage: '上传图片',
     pleaseGoto: '请先前往',
-    onceNumberMax: `单次抽取数量最大为${SINGLE_TIME_MAX_PERSON_COUNT}，若设置超过${SINGLE_TIME_MAX_PERSON_COUNT}会自动为您分批次抽取`,
+    onceNumberMax: '可按奖项总人数设置单次抽取分组',
 }
 
 export const tooltip = {
