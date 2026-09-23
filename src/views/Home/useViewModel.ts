@@ -11,7 +11,7 @@ import { useToast } from 'vue-toast-notification'
 import dongSound from '@/assets/audio/end.mp3'
 import enterAudio from '@/assets/audio/enter.wav'
 import worldCupAudio from '@/assets/audio/worldcup.mp3'
-import { CONFETTI_FIRE_MAX_COUNT, SINGLE_TIME_MAX_PERSON_COUNT } from '@/constant/config'
+import { CONFETTI_FIRE_MAX_COUNT } from '@/constant/config'
 import { useElementPosition, useElementStyle } from '@/hooks/useElement'
 import i18n from '@/locales/i18n'
 import useStore from '@/store'
@@ -101,7 +101,7 @@ export function useViewModel() {
 
         const remainingPrizeCount = Math.max(Number(prize.count) - Number(prize.isUsedCount), 0)
         const availablePersonCount = prize.isAll ? notThisPrizePersonList.value.length : notPersonList.value.length
-        return Math.min(SINGLE_TIME_MAX_PERSON_COUNT, remainingPrizeCount, availablePersonCount)
+        return Math.min(remainingPrizeCount, availablePersonCount)
     })
 
     function setDrawCount(count: number) {
@@ -518,7 +518,10 @@ export function useViewModel() {
         if (patternList.value.length) {
             for (let i = 0; i < patternList.value.length; i++) {
                 if (i < rowCount.value * 7) {
-                    objects.value[patternList.value[i] - 1].element.style.backgroundColor = rgba(cardColor.value, Math.random() * 0.5 + 0.25)
+                    const patternObject = objects.value[patternList.value[i] - 1]
+                    if (patternObject?.element) {
+                        patternObject.element.style.backgroundColor = rgba(cardColor.value, Math.random() * 0.5 + 0.25)
+                    }
                 }
             }
         }
@@ -548,7 +551,7 @@ export function useViewModel() {
         // personPool.value = currentPrize.value.isAll ? notThisPrizePersonList.value : notPersonList.value
         personPool.value = currentPrize.value.isAll ? [...notThisPrizePersonList.value] : [...notPersonList.value]
         const remainingPrizeCount = Math.max(currentPrize.value.count - currentPrize.value.isUsedCount, 0)
-        const maxSelectableCount = Math.min(SINGLE_TIME_MAX_PERSON_COUNT, remainingPrizeCount, personPool.value.length)
+        const maxSelectableCount = Math.min(remainingPrizeCount, personPool.value.length)
         if (maxSelectableCount <= 0) {
             toast.open({
                 message: i18n.global.t('error.personNotEnough'),
