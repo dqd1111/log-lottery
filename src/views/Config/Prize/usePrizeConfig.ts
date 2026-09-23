@@ -12,8 +12,11 @@ export function usePrizeConfig() {
     const imageDbStore = localforage.createInstance({
         name: 'imgStore',
     })
-    const prizeConfig = useStore().prizeConfig
-    const globalConfig = useStore().globalConfig
+    const store = useStore()
+    const prizeConfig = store.prizeConfig
+    const { getAllPersonList: allPersonList } = storeToRefs(store.personConfig)
+    prizeConfig.ensureSinglePrize()
+    const globalConfig = store.globalConfig
     const { getPrizeConfig: localPrizeList, getCurrentPrize: currentPrize } = storeToRefs(prizeConfig)
 
     const { getImageList: localImageList } = storeToRefs(globalConfig)
@@ -57,8 +60,18 @@ export function usePrizeConfig() {
             }
         }
         if (indexPrize > -1) {
-            prizeList.value[indexPrize].separateCount.countList = []
-            prizeList.value[indexPrize].isUsed ? prizeList.value[indexPrize].isUsedCount = prizeList.value[indexPrize].count : prizeList.value[indexPrize].isUsedCount = 0
+            const prize = prizeList.value[indexPrize]
+            const count = Math.max(Math.floor(Number(prize.count)) || 0, 1)
+            const configuredUsedCount = Math.max(Math.floor(Number(prize.isUsedCount)) || 0, 0)
+            const actualWinnerCount = allPersonList.value.filter(person => person.isWin).length
+            const usedCount = prize.isUsed && actualWinnerCount > 0 && actualWinnerCount < configuredUsedCount
+                ? actualWinnerCount
+                : configuredUsedCount
+
+            prize.count = count
+            prize.isUsedCount = Math.min(usedCount, count)
+            prize.isUsed = prize.isUsedCount >= count
+            prize.separateCount.countList = []
         }
     }
     function submitData(value: any) {
