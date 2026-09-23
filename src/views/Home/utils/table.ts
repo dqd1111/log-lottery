@@ -9,19 +9,19 @@ import { filterData } from '@/utils'
  * @returns 表格数据
  */
 export function initTableData({ allPersonList, rowCount }: { allPersonList: IPersonConfig[], rowCount: number }): IPersonConfig[] {
-    let tableData: IPersonConfig[] = []
     if (allPersonList.length <= 0) {
         return []
     }
-    const totalCount = rowCount * 7
-    const allPersonLength = allPersonList.length
-    if (allPersonLength < totalCount) {
-        tableData = Array.from({ length: totalCount }, () => JSON.parse(JSON.stringify(allPersonList))).flat()
-    }
-    else {
-        tableData = allPersonList.slice(0, totalCount)
-    }
-    tableData = filterData(tableData.slice(0, totalCount), rowCount)
+
+    const safeRowCount = Math.max(Math.floor(Number(rowCount)) || 1, 1)
+    // Keep one card for every participant so a large draw can still highlight each winner.
+    const totalCount = Math.max(safeRowCount * 7, allPersonList.length)
+    const copies = Math.ceil(totalCount / allPersonList.length)
+    const tableData = Array.from({ length: copies }, () => JSON.parse(JSON.stringify(allPersonList)))
+        .flat()
+        .slice(0, totalCount)
+
+    filterData(tableData, safeRowCount)
     return tableData
 }
 
