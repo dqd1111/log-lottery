@@ -78,6 +78,21 @@ export function useViewModel() {
     // 抽奖音乐相关
     const lotteryMusic = ref<HTMLAudioElement | null>(null)
 
+    function repairStalePrizeProgress() {
+        const prize = currentPrize.value
+        if (!prize || !prize.isUsed || prize.isUsedCount <= 0) {
+            return
+        }
+
+        const actualWinnerCount = allPersonList.value.filter(person => person.isWin).length
+        if (actualWinnerCount > 0 && actualWinnerCount < prize.isUsedCount) {
+            prizeConfig.syncCurrentPrizeProgress(actualWinnerCount)
+        }
+    }
+
+    // Older builds could save the new total as the already-drawn count.
+    watch([() => allPersonList.value.length, () => currentPrize.value?.id], repairStalePrizeProgress, { immediate: true })
+
     const maxDrawCount = computed(() => {
         const prize = currentPrize.value
         if (!prize || prize.isUsed) {
