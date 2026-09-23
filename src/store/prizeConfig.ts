@@ -87,6 +87,25 @@ export const usePrizeConfig = defineStore('prize', {
             this.prizeConfig.prizeList = [singlePrize]
             this.prizeConfig.currentPrize = singlePrize
         },
+        // Keep the saved progress consistent when an existing winner list repairs stale prize state.
+        syncCurrentPrizeProgress(usedCount: number) {
+            const currentPrize = this.prizeConfig.currentPrize
+            const prizeListItem = this.prizeConfig.prizeList.find(item => item.id === currentPrize?.id)
+            const prizes = prizeListItem && prizeListItem !== currentPrize
+                ? [prizeListItem, currentPrize]
+                : [prizeListItem || currentPrize]
+            const count = Math.max(Math.floor(Number(currentPrize?.count)) || 0, 1)
+            const normalizedUsedCount = Math.min(Math.max(Math.floor(Number(usedCount)) || 0, 0), count)
+
+            prizes.forEach((prize) => {
+                if (!prize) {
+                    return
+                }
+                prize.count = count
+                prize.isUsedCount = normalizedUsedCount
+                prize.isUsed = normalizedUsedCount >= count
+            })
+        },
         // 添加奖项
         addPrizeConfig(prizeConfigItem: IPrizeConfig) {
             this.setPrizeConfig([prizeConfigItem])
